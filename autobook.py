@@ -20,6 +20,8 @@ class Autobooker:
         self.password = password
         if browser is not None:
             self._browser = browser
+        else:
+            self._browser = None
         self.logged_in = False
         self.wait = None
         self.today = datetime.strftime(datetime.now(), "%Y-%m-%d")
@@ -87,8 +89,9 @@ class Autobooker:
             self.login()
         button_xpath_selector = (By.XPATH, "//*[contains(text(), 'Register for Single Class')]")
         browser = self.browser
-        all_classes =  self.find_classes()
-        book_urls =all_classes["not_booked"]
+        all_classes = self.find_classes()
+        book_urls = all_classes["not_booked"]
+        logging.info("Urls to follow: %s", book_urls)
         for url in book_urls:
             browser.get(url)
             self.wait.until(expected_conditions.element_to_be_clickable(button_xpath_selector))
@@ -101,7 +104,7 @@ class Autobooker:
 if __name__ == "__main__":
     logging.basicConfig(level="INFO", format="%(asctime)s:%(levelname)s: %(message)s")
     parser = ArgumentParser()
-    parser.add_argument("--username", "-u")
-    parser.add_argument("--password", "-p")
+    parser.add_argument("username")
+    parser.add_argument("password")
     args = parser.parse_args()
     Autobooker(args.username, args.password).book_classes()

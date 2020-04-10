@@ -21,6 +21,8 @@ app.config.from_object(__name__)
 app.testing = DEBUG
 csrf = CSRFProtect(app)
 
+logging.basicConfig(level="INFO", format="%(asctime)s:%(levelname)s: %(message)s")
+
 
 class LoginForm(FlaskForm):
     username = StringField('username', validators=[DataRequired()])
@@ -55,5 +57,4 @@ def book_home():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level="INFO", format="%(asctime)s:%(levelname)s: %(message)s")
     app.run()
