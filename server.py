@@ -8,7 +8,7 @@ from selenium.webdriver import Chrome, ChromeOptions
 from wtforms import StringField, PasswordField
 from wtforms.validators import DataRequired
 
-from autobook import Autobooker
+from autobook import Autobooker, LoginException
 
 
 DEBUG = os.environ.get("DEBUG", False)
@@ -43,17 +43,22 @@ def get_driver():
 @app.route('/', methods=['GET', 'POST'])
 def book_home():
     form = LoginForm()
+    context = {}
     if form.validate_on_submit():
         # do the booking
         autobooker = Autobooker(form.username.data, form.password.data, browser=get_driver())
-        if "submit_check" in request.form:
-            class_urls = autobooker.find_classes()
-            context = {"action": "check", "classes": class_urls}
-        else:
-            class_urls = autobooker.book_classes()
-            context = {"action": "book", "classes": class_urls}
-        return render_template("completed.html", **context)
-    return render_template("home.html", form=form)
+        try:
+            if "submit_check" in request.form:
+                class_urls = autobooker.find_classes()
+                context = {"action": "check", "classes": class_urls}
+            else:
+                class_urls = autobooker.book_classes()
+                context = {"action": "book", "classes": class_urls}
+            return render_template("completed.html", **context)
+        except LoginException:
+            context = {"login_error": True}
+    context["form"] = form
+    return render_template("home.html", **context)
 
 
 if __name__ == "__main__":

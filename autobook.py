@@ -11,6 +11,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
 
 
+class LoginException(Exception):
+    pass
+
+
 class Autobooker:
 
     max_attempts = 3
@@ -42,17 +46,24 @@ class Autobooker:
         browser = self.browser
         browser.get("https://goteamup.com/login/")
 
+        self.wait.until(expected_conditions.element_to_be_clickable((By.ID, 'id_email-email')))
         login_form = browser.find_element(By.CLASS_NAME, 'processing-on-submit')
         login_username = browser.find_element(By.ID, 'id_email-email')
         login_username.send_keys(self.email)
         login_form.submit()
 
+        self.wait.until(expected_conditions.element_to_be_clickable((By.ID, 'id_login-password')))
         login_password = browser.find_element(By.ID, 'id_login-password')
         login_password.send_keys(self.password)
         login_form = browser.find_element(By.CLASS_NAME, 'processing-on-submit')
         login_form.submit()
-        self.logged_in = True
-        logging.info("Logged in")
+
+        if "dashboard" in browser.current_url:
+            self.logged_in = True
+            logging.info("Logged in")
+        else:
+            logging.error("Failed to log in")
+            raise LoginException("Failed to log in")
 
     def find_classes(self):
         if not self.logged_in:

@@ -4,6 +4,9 @@
 
 <div class="col-sm-12">
     <p>Enter your Go Team Up username (email) and password:</p>
+    {% if login_error %}
+        <p class="text-danger">ERROR: could not log in to Go Team Up. Please check your username and password are correct.</p>
+    {% endif %}
     <form method="post">
         {{ form.csrf_token }}
         <div><label>{{ form.username.label }}</label> {{ form.username(size=20) }}</div>
