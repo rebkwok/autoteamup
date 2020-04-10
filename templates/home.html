@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="col-sm-12">
+    <p>Enter your Go Team Up username (email) and password:</p>
+    <form method="post">
+        {{ form.csrf_token }}
+        <div><label>{{ form.username.label }}</label> {{ form.username(size=20) }}</div>
+        <div><label>{{ form.password.label }}</label> {{ form.password(size=20) }}</div>
+        <div>{{ form.recaptcha }}</div>
+        {% if form.errors.recaptcha %} Recaptcha Error{% endif %}
+        <div>Classes until the end of this month:</div>
+        <div><input class="btn btn-sm btn-info" type="submit" name="submit_check" value="Show class status"/>
+       <input class="btn btn-sm btn-success" type="submit" name="submit_book" value="Book available classes"/></div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="col-sm-12">
+    <div><a class="btn btn-sm btn-warning" href="/">Back</a></div>
+    {% if action == "book" %}
+        {% if classes.new_booked %}
+            <p>You have been booked into the following classes:</p>
+            <ul>
+                {% for url in classes.new_booked %}
+                <li><a href="{{ url }}">{{ url }}</a></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No available classes found to book for this month</p>
+        {% endif %}
+
+        {% if classes.already_booked %}
+            <p>You are already booked for the following classes:</p>
+            <ul>
+                {% for url in classes.already_booked %}
+                <li><a href="{{ url }}">{{ url }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}}
+
+    {% else %}
+        {% if classes.not_booked %}
+            <p>Still to book:</p>
+            <ul>
+                {% for url in classes.booked %}
+                <li><a href="{{ url }}">{{ url }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if classes.booked %}
+            {% if classes.not_booked %}
+                <p>You are already booked for the following classes:</p>
+            {% else %}
+                <p>You are booked for all classes this month.</p>
+            {% endif %}
+            <ul>
+                {% for url in classes.booked %}
+                <li><a href="{{ url }}">{{ url }}</a></li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>You are not booked for any classes this month.</p>
+        {% endif %}
+    {% endif %}
+
+</div>
+{% endblock %}

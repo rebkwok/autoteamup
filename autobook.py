@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 import logging
 
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -10,47 +11,88 @@ from selenium.webdriver.support.ui import WebDriverWait
 from time import sleep
 
 
-def book(email, password):
-    options = ChromeOptions()
-    options.add_argument("headless")
-    browser = Chrome(options=options)
+class Autobooker:
 
-    wait = WebDriverWait(browser, 10)
-    logging.info("Logging in")
+    max_attempts = 3
 
-    browser.get("https://goteamup.com/login/")
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
+        self._browser = None
+        self.logged_in = False
+        self.wait = None
+        self.today = datetime.strftime(datetime.now(), "%Y-%m-%d")
 
-    login_form = browser.find_element(By.CLASS_NAME, 'processing-on-submit')
-    login_username = browser.find_element(By.ID, 'id_email-email')
-    login_username.send_keys(email)
-    login_form.submit()
+    @property
+    def browser(self):
+        if self._browser is None:
+            options = ChromeOptions()
+            options.add_argument("headless")
+            self._browser = Chrome(options=options)
+            self.wait = WebDriverWait(self.browser, 10)
+        return self._browser
 
-    login_password = browser.find_element(By.ID, 'id_login-password')
-    login_password.send_keys(password)
-    login_form = browser.find_element(By.CLASS_NAME, 'processing-on-submit')
-    login_form.submit()
-    logging.info("Logged in")
+    def login(self):
+        logging.info("Logging in")
+        browser = self.browser
+        browser.get("https://goteamup.com/login/")
 
-    date_string = datetime.strftime(datetime.now(), "%Y-%m-%d")
-    logging.info("Fetching schedule for %s", date_string)
-    browser.get(f"https://goteamup.com/p/1953481-freedom-of-flight-aerial/#!month-{date_string}")
-    sleep(2)
-    events = browser.find_elements(By.CLASS_NAME, "event-wrapper")
-    book_urls = []
-    for event in events:
-        if not event.find_elements_by_class_name("icon-circle-ok"):
-            book_urls.append(event.get_attribute("href"))
+        login_form = browser.find_element(By.CLASS_NAME, 'processing-on-submit')
+        login_username = browser.find_element(By.ID, 'id_email-email')
+        login_username.send_keys(self.email)
+        login_form.submit()
 
-    book_urls = [url for url in book_urls if "live-online" in url]
-    if not book_urls:
-        logging.info("No unbooked classes found for this month")
-    button_xpath_selector = (By.XPATH, "//*[contains(text(), 'Register for Single Class')]")
-    for url in book_urls:
-        browser.get(url)
-        wait.until(expected_conditions.element_to_be_clickable(button_xpath_selector))
-        button = browser.find_element(*button_xpath_selector)
-        button.click()
-        logging.info("Booked - %s", url)
+        login_password = browser.find_element(By.ID, 'id_login-password')
+        login_password.send_keys(self.password)
+        login_form = browser.find_element(By.CLASS_NAME, 'processing-on-submit')
+        login_form.submit()
+        self.logged_in = True
+        logging.info("Logged in")
+
+    def find_classes(self):
+        if not self.logged_in:
+            self.login()
+        logging.info("Fetching schedule for %s", self.today)
+        browser = self.browser
+        browser.get(f"https://goteamup.com/p/1953481-freedom-of-flight-aerial/#!month-{self.today}")
+        self.wait.until(expected_conditions.element_to_be_clickable((By.CLASS_NAME, "event-wrapper")))
+
+        live_online_urls = {"booked": [], "not_booked": []}
+        for attempt in range(1, self.max_attempts + 1):
+            logging.info("Attempt %s / %s", attempt, self.max_attempts)
+            events = browser.find_elements(By.CLASS_NAME, "event-wrapper")
+            try:
+                for event in events:
+                    url = event.get_attribute("href")
+                    if "live-online" in url:
+                        if not event.find_elements_by_class_name("icon-circle-ok"):
+                            live_online_urls["not_booked"].append(url)
+                        else:
+                            live_online_urls["booked"].append(url)
+                logging.info("Succeeded on attempt %s / %s", attempt, self.max_attempts)
+                break
+            except StaleElementReferenceException:
+                logging.warning("Exception encountered on attempt %s / %s", attempt, self.max_attempts)
+                if attempt <= self.max_attempts:
+                    logging.info("Sleeping for 1 second")
+                    sleep(1)
+
+        return live_online_urls
+
+    def book_classes(self):
+        if not self.logged_in:
+            self.login()
+        button_xpath_selector = (By.XPATH, "//*[contains(text(), 'Register for Single Class')]")
+        browser = self.browser
+        all_classes =  self.find_classes()
+        book_urls =all_classes["not_booked"]
+        for url in book_urls:
+            browser.get(url)
+            self.wait.until(expected_conditions.element_to_be_clickable(button_xpath_selector))
+            button = browser.find_element(*button_xpath_selector)
+            button.click()
+            logging.info("Booked - %s", url)
+        return {"new_booked": book_urls, "already_booked": all_classes["booked"]}
 
 
 if __name__ == "__main__":
@@ -59,4 +101,4 @@ if __name__ == "__main__":
     parser.add_argument("--username", "-u")
     parser.add_argument("--password", "-p")
     args = parser.parse_args()
-    book(args.username, args.password)
+    Autobooker(args.username, args.password).book_classes()
