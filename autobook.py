@@ -15,10 +15,11 @@ class Autobooker:
 
     max_attempts = 3
 
-    def __init__(self, email, password):
+    def __init__(self, email, password, browser=None):
         self.email = email
         self.password = password
-        self._browser = None
+        if browser is not None:
+            self._browser = browser
         self.logged_in = False
         self.wait = None
         self.today = datetime.strftime(datetime.now(), "%Y-%m-%d")
@@ -28,8 +29,10 @@ class Autobooker:
         if self._browser is None:
             options = ChromeOptions()
             options.add_argument("headless")
+
             self._browser = Chrome(options=options)
-            self.wait = WebDriverWait(self.browser, 10)
+        if self.wait is None:
+            self.wait = WebDriverWait(self._browser, 10)
         return self._browser
 
     def login(self):

@@ -4,6 +4,7 @@ import os
 from flask import Flask, render_template, request
 from flask_wtf import FlaskForm, RecaptchaField
 from flask_wtf.csrf import CSRFProtect
+from selenium.webdriver import Chrome, ChromeOptions
 from wtforms import StringField, PasswordField
 from wtforms.validators import DataRequired
 
@@ -27,12 +28,22 @@ class LoginForm(FlaskForm):
     recaptcha = RecaptchaField()
 
 
+def get_driver():
+    chrome_options = ChromeOptions()
+    chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--no-sandbox")
+    driver = Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=chrome_options)
+    return driver
+
+
 @app.route('/', methods=['GET', 'POST'])
 def book_home():
     form = LoginForm()
     if form.validate_on_submit():
         # do the booking
-        autobooker = Autobooker(form.username.data, form.password.data)
+        autobooker = Autobooker(form.username.data, form.password.data, browser=get_driver())
         if "submit_check" in request.form:
             class_urls = autobooker.find_classes()
             context = {"action": "check", "classes": class_urls}
