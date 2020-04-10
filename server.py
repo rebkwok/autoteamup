@@ -10,7 +10,7 @@ from wtforms.validators import DataRequired
 from autobook import Autobooker
 
 
-DEBUG = os.environ["DEBUG"]
+DEBUG = os.environ.get("DEBUG", False)
 SECRET_KEY = os.environ['SECRET_KEY']
 RECAPTCHA_PUBLIC_KEY = os.environ['RECAPTCHA_PUBLIC_KEY']
 RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
