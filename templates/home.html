@@ -5,9 +5,14 @@
 <div class="col-sm-12">
     <p>Enter your Go Team Up username (email) and password:</p>
 
-    {% if login_error %}
-        <p class="text-danger">ERROR: could not log in to Go Team Up. Please check your username and password are correct.</p>
-    {% endif %}
+    <div id="error-message">
+        {% if login_error %}
+            <p class="text-danger">ERROR: could not log in to Go Team Up. Please check your username and password are correct.</p>
+        {% endif %}
+        {% if unknown_error %}
+            <p class="text-danger">ERROR: Something went wrong. Please try again.
+        {%  endif %}
+    </div>
 
     <form method="post" id="login_form">
         {{ form.csrf_token }}
@@ -46,6 +51,7 @@
        $('#show-btn').addClass("disabled");
          $('#book-btn').addClass("disabled");
        $('#recaptcha').hide();
+         $('#error-message').hide();
        return true;
      });
  </script>

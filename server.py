@@ -75,8 +75,12 @@ def book_home():
                 class_urls = autobooker.book_classes(month=month)
                 context = {"action": "book", "classes": class_urls, "month": month_string}
             return render_template("completed.html", **context)
-        except LoginException:
-            context = {"login_error": True}
+        except Exception as e:
+            if isinstance(e, LoginException):
+                context = {"login_error": True}
+            else:
+                context = {"unknown_error": True}
+            logging.error(e)
     context["form"] = form
     return render_template("home.html", **context)
 
