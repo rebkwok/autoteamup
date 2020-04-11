@@ -1,3 +1,5 @@
+import calendar
+from datetime import datetime
 import logging
 import os
 
@@ -5,7 +7,7 @@ from flask import Flask, render_template, request
 from flask_wtf import FlaskForm, RecaptchaField
 from flask_wtf.csrf import CSRFProtect
 from selenium.webdriver import Chrome, ChromeOptions
-from wtforms import StringField, PasswordField
+from wtforms import StringField, PasswordField, SelectField
 from wtforms.validators import DataRequired
 
 from autobook import Autobooker, LoginException
@@ -25,8 +27,9 @@ logging.basicConfig(level="INFO", format="%(asctime)s:%(levelname)s: %(message)s
 
 
 class LoginForm(FlaskForm):
-    username = StringField('username', validators=[DataRequired()])
-    password = PasswordField('password', validators=[DataRequired()])
+    username = StringField('Username (email)', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    month = SelectField('Month', coerce=int)
     recaptcha = RecaptchaField()
 
 
@@ -40,20 +43,30 @@ def get_driver():
     return driver
 
 
+def get_next_3_months():
+    today = datetime.today()
+    return [
+        (today.month + i, calendar.month_name[today.month + i]) for i in range(3)
+    ]
+
+
 @app.route('/', methods=['GET', 'POST'])
 def book_home():
     form = LoginForm()
+    form.month.choices = get_next_3_months()
     context = {}
     if form.validate_on_submit():
         # do the booking
         autobooker = Autobooker(form.username.data, form.password.data, browser=get_driver())
+        month = form.month.data
+        month_string = calendar.month_name[month]
         try:
             if "submit_check" in request.form:
-                class_urls = autobooker.find_classes()
-                context = {"action": "check", "classes": class_urls}
+                class_urls = autobooker.find_classes(month=month)
+                context = {"action": "check", "classes": class_urls, "month": month_string}
             else:
-                class_urls = autobooker.book_classes()
-                context = {"action": "book", "classes": class_urls}
+                class_urls = autobooker.book_classes(month=month)
+                context = {"action": "book", "classes": class_urls, "month": month_string}
             return render_template("completed.html", **context)
         except LoginException:
             context = {"login_error": True}

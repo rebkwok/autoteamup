@@ -1,8 +1,9 @@
 from argparse import ArgumentParser
+import calendar
 from datetime import datetime
 import logging
 
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -28,7 +29,7 @@ class Autobooker:
             self._browser = None
         self.logged_in = False
         self.wait = None
-        self.today = datetime.strftime(datetime.now(), "%Y-%m-%d")
+        self.date_format = "%Y-%m-%d"
 
     @property
     def browser(self):
@@ -65,15 +66,28 @@ class Autobooker:
             logging.error("Failed to log in")
             raise LoginException("Failed to log in")
 
-    def find_classes(self):
+    def find_classes(self, month=None):
+        live_online_urls = {"booked": [], "not_booked": []}
+
         if not self.logged_in:
             self.login()
-        logging.info("Fetching schedule for %s", self.today)
+        today = datetime.today()
+        if month and month != today.month:
+            date_to_fetch = datetime(year=today.year, month=month, day=1)
+        else:
+            date_to_fetch = today
+        month_to_fetch = calendar.month_name[date_to_fetch.month]
+        date_string = datetime.strftime(date_to_fetch, self.date_format)
+        logging.info("Fetching schedule for %s", month_to_fetch)
         browser = self.browser
-        browser.get(f"https://goteamup.com/p/1953481-freedom-of-flight-aerial/#!month-{self.today}")
-        self.wait.until(expected_conditions.element_to_be_clickable((By.CLASS_NAME, "event-wrapper")))
+        browser.get(f"https://goteamup.com/p/1953481-freedom-of-flight-aerial/#!month-{date_string}")
 
-        live_online_urls = {"booked": [], "not_booked": []}
+        try:
+            self.wait.until(expected_conditions.element_to_be_clickable((By.CLASS_NAME, "event-wrapper")))
+        except TimeoutException:
+            logging.info("No classes scheduled in %s", month_to_fetch)
+            return {}
+
         for attempt in range(1, self.max_attempts + 1):
             logging.info("Attempt %s / %s", attempt, self.max_attempts)
             events = browser.find_elements(By.CLASS_NAME, "event-wrapper")
@@ -82,10 +96,14 @@ class Autobooker:
                     url = event.get_attribute("href")
                     if "live-online" in url:
                         if not event.find_elements_by_class_name("icon-circle-ok"):
-                            live_online_urls["not_booked"].append(url)
+                            if url not in live_online_urls["not_booked"]:
+                                live_online_urls["not_booked"].append(url)
                         else:
-                            live_online_urls["booked"].append(url)
+                            if url not in live_online_urls["booked"]:
+                                live_online_urls["booked"].append(url)
                 logging.info("Succeeded on attempt %s / %s", attempt, self.max_attempts)
+                refetch_events = browser.find_elements(By.CLASS_NAME, "event-wrapper")
+                logging.info(f"original = {len(events)}, refetched = {len(refetch_events)}")
                 break
             except StaleElementReferenceException:
                 logging.warning("Exception encountered on attempt %s / %s", attempt, self.max_attempts)
@@ -95,12 +113,12 @@ class Autobooker:
 
         return live_online_urls
 
-    def book_classes(self):
+    def book_classes(self, month=None):
         if not self.logged_in:
             self.login()
         button_xpath_selector = (By.XPATH, "//*[contains(text(), 'Register for Single Class')]")
         browser = self.browser
-        all_classes = self.find_classes()
+        all_classes = self.find_classes(month=month)
         book_urls = all_classes["not_booked"]
         logging.info("Urls to follow: %s", book_urls)
         for url in book_urls:
@@ -117,5 +135,12 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("username")
     parser.add_argument("password")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--month", "-m", type=int, help="Month (numerical format) e.g. for June enter 6")
     args = parser.parse_args()
-    Autobooker(args.username, args.password).book_classes()
+    autobooker = Autobooker(args.username, args.password)
+    if args.dry_run:
+        found_classes = autobooker.find_classes(month=args.month)
+        logging.info("Found: %s", found_classes)
+    else:
+        autobooker.book_classes(month=args.month)

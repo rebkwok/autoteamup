@@ -9,13 +9,23 @@
     {% endif %}
     <form method="post">
         {{ form.csrf_token }}
-        <div><label>{{ form.username.label }}</label> {{ form.username(size=20) }}</div>
-        <div><label>{{ form.password.label }}</label> {{ form.password(size=20) }}</div>
-        <div>{{ form.recaptcha }}</div>
-        {% if form.errors.recaptcha %} Recaptcha Error{% endif %}
-        <div>Classes until the end of this month:</div>
-        <div><input class="btn btn-sm btn-info" type="submit" name="submit_check" value="Show class status"/>
-       <input class="btn btn-sm btn-success" type="submit" name="submit_book" value="Book available classes"/></div>
+        <div class="form-group">
+            <label>{{ form.username.label }}</label>
+            {{ form.username(size=20) }}
+            <br/>
+            <label>{{ form.password.label }}</label> {{ form.password(size=20) }}
+            <br/>
+            <label>{{ form.month.label }}</label> {{ form.month }}
+        </div>
+        <div class="form-group">{{ form.recaptcha }}
+            {% if form.errors.recaptcha %} Recaptcha Error{% endif %}
+        </div>
+
+            <div class="form-group">
+                <input class="btn btn-sm btn-info" type="submit" name="submit_check" value="Show class status"/>
+                <input class="btn btn-sm btn-success" type="submit" name="submit_book" value="Book available classes"/>
+           </div>
+
     </form>
 </div>
 {% endblock %}

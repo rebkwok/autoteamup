@@ -4,7 +4,9 @@
 
 <div class="col-sm-12">
     <div><a class="btn btn-sm btn-warning" href="/">Back</a></div>
-    {% if action == "book" %}
+    {% if not classes %}
+        <p>No classes scheduled for {{ month }}</p>
+    {% elif action == "book" %}
         {% if classes.new_booked %}
             <p>You have been booked into the following classes:</p>
             <ul>
@@ -13,7 +15,7 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p>No available classes found to book for this month</p>
+            <p>No available classes found to book for {{ month }}</p>
         {% endif %}
 
         {% if classes.already_booked %}
@@ -29,7 +31,7 @@
         {% if classes.not_booked %}
             <p>Still to book:</p>
             <ul>
-                {% for url in classes.booked %}
+                {% for url in classes.not_booked %}
                 <li><a href="{{ url }}">{{ url }}</a></li>
                 {% endfor %}
             </ul>
@@ -39,7 +41,7 @@
             {% if classes.not_booked %}
                 <p>You are already booked for the following classes:</p>
             {% else %}
-                <p>You are booked for all classes this month.</p>
+                <p>You are booked for all classes in {{ month }}.</p>
             {% endif %}
             <ul>
                 {% for url in classes.booked %}
@@ -47,7 +49,7 @@
                 {% endfor %}
             </ul>
         {% else %}
-            <p>You are not booked for any classes this month.</p>
+            <p>You are not booked for any classes in {{ month }}.</p>
         {% endif %}
     {% endif %}
 
