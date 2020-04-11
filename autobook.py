@@ -86,7 +86,7 @@ class Autobooker:
             self.wait.until(expected_conditions.element_to_be_clickable((By.CLASS_NAME, "event-wrapper")))
         except TimeoutException:
             logging.info("No classes scheduled in %s", month_to_fetch)
-            return {}
+            return live_online_urls
 
         for attempt in range(1, self.max_attempts + 1):
             logging.info("Attempt %s / %s", attempt, self.max_attempts)

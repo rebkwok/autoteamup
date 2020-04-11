@@ -80,12 +80,13 @@ def book_home():
             if "submit_check" in request.form:
                 context = {"action": "check", "classes": class_urls, "month": month_string}
             else:
-                booking_process = Process(  # Create a daemonic process with heavy "my_func"
-                    target=_book_classes,
-                    args=(username, password, month, class_urls),
-                    daemon=True
-                )
-                booking_process.start()
+                if class_urls.get("not_booked"):
+                    booking_process = Process(  # Create a daemonic process with heavy "my_func"
+                        target=_book_classes,
+                        args=(username, password, month, class_urls),
+                        daemon=True
+                    )
+                    booking_process.start()
                 context = {"action": "book", "classes": class_urls, "month": month_string}
             return render_template("completed.html", **context)
         except Exception as e:
@@ -93,7 +94,7 @@ def book_home():
                 context = {"login_error": True}
             else:
                 context = {"unknown_error": True}
-            logging.error(e)
+            logging.error(str(e))
     context["form"] = form
     return render_template("home.html", **context)
 
