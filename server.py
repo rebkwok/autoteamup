@@ -18,10 +18,17 @@ SECRET_KEY = os.environ['SECRET_KEY']
 RECAPTCHA_PUBLIC_KEY = os.environ['RECAPTCHA_PUBLIC_KEY']
 RECAPTCHA_PRIVATE_KEY = os.environ['RECAPTCHA_PRIVATE_KEY']
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_url_path='',
+    static_folder='static',
+    template_folder='templates'
+)
 app.config.from_object(__name__)
 app.testing = DEBUG
 csrf = CSRFProtect(app)
+
+
 
 logging.basicConfig(level="INFO", format="%(asctime)s:%(levelname)s: %(message)s")
 
