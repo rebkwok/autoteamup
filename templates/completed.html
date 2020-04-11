@@ -7,25 +7,23 @@
     {% if not classes %}
         <p>No classes scheduled for {{ month }}</p>
     {% elif action == "book" %}
-        {% if classes.new_booked %}
-            <p>You have been booked into the following classes:</p>
+        {% if classes.not_booked %}
+            <p>You are being booked into the following classes (this will take a minute or two to complete):</p>
             <ul>
-                {% for url in classes.new_booked %}
+                {% for url in classes.not_booked %}
                 <li><a href="{{ url }}">{{ url }}</a></li>
                 {% endfor %}
             </ul>
-        {% else %}
-            <p>No available classes found to book for {{ month }}</p>
         {% endif %}
 
-        {% if classes.already_booked %}
+        {% if classes.booked %}
             <p>You are already booked for the following classes:</p>
             <ul>
-                {% for url in classes.already_booked %}
+                {% for url in classes.booked %}
                 <li><a href="{{ url }}">{{ url }}</a></li>
                 {% endfor %}
             </ul>
-        {% endif %}}
+        {% endif %}
 
     {% else %}
         {% if classes.not_booked %}

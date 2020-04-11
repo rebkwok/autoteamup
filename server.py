@@ -1,6 +1,7 @@
 import calendar
 from datetime import datetime
 import logging
+from multiprocessing import Process
 import os
 
 from flask import Flask, render_template, request
@@ -57,6 +58,11 @@ def get_next_3_months():
     ]
 
 
+def _book_classes(username, password, month, all_class_urls):
+    autobooker = Autobooker(username, password, browser=get_driver())
+    autobooker.book_classes(month, all_class_urls)
+
+
 @app.route('/', methods=['GET', 'POST'])
 def book_home():
     form = LoginForm()
@@ -64,15 +70,22 @@ def book_home():
     context = {}
     if form.validate_on_submit():
         # do the booking
-        autobooker = Autobooker(form.username.data, form.password.data, browser=get_driver())
+        username = form.username.data
+        password = form.password.data
+        autobooker = Autobooker(username, password, browser=get_driver())
         month = form.month.data
         month_string = calendar.month_name[month]
         try:
+            class_urls = autobooker.find_classes(month=month)
             if "submit_check" in request.form:
-                class_urls = autobooker.find_classes(month=month)
                 context = {"action": "check", "classes": class_urls, "month": month_string}
             else:
-                class_urls = autobooker.book_classes(month=month)
+                booking_process = Process(  # Create a daemonic process with heavy "my_func"
+                    target=_book_classes,
+                    args=(username, password, month, class_urls),
+                    daemon=True
+                )
+                booking_process.start()
                 context = {"action": "book", "classes": class_urls, "month": month_string}
             return render_template("completed.html", **context)
         except Exception as e:

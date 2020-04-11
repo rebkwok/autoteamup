@@ -113,21 +113,23 @@ class Autobooker:
 
         return live_online_urls
 
-    def book_classes(self, month=None):
+    def book_classes(self, month=None, all_class_urls=None):
         if not self.logged_in:
             self.login()
         button_xpath_selector = (By.XPATH, "//*[contains(text(), 'Register for Single Class')]")
         browser = self.browser
-        all_classes = self.find_classes(month=month)
-        book_urls = all_classes["not_booked"]
+        if all_class_urls is None:
+            all_class_urls = self.find_classes(month)
+        book_urls = all_class_urls["not_booked"]
         logging.info("Urls to follow: %s", book_urls)
+
         for url in book_urls:
             browser.get(url)
             self.wait.until(expected_conditions.element_to_be_clickable(button_xpath_selector))
             button = browser.find_element(*button_xpath_selector)
             button.click()
             logging.info("Booked - %s", url)
-        return {"new_booked": book_urls, "already_booked": all_classes["booked"]}
+        return {"new_booked": book_urls, "already_booked": all_class_urls["booked"]}
 
 
 if __name__ == "__main__":
