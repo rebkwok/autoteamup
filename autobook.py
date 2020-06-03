@@ -93,6 +93,8 @@ class Autobooker:
             events = browser.find_elements(By.CLASS_NAME, "event-wrapper")
             try:
                 for event in events:
+                    if "not-bookable" in event.get_attribute("class"):
+                        continue
                     url = event.get_attribute("href")
                     if "live-online" in url:
                         if not event.find_elements_by_class_name("icon-circle-ok"):
